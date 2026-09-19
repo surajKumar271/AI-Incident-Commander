@@ -8,7 +8,11 @@ import {
   deleteService,
 } from "../controllers/service.controller.js";
 
+import { authenticate } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
+
+router.use(authenticate);
 
 router.post("/", createService);
 router.get("/", getAllServices);

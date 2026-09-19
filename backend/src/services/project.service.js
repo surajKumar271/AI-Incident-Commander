@@ -1,21 +1,21 @@
 import * as projectRepository from "../repositories/project.repository.js";
 
 export const createProject = async (data) => {
-  return await projectRepository.createProject(data);
+  return projectRepository.createProject(data);
 };
 
-export const getAllProjects = async () => {
-  return await projectRepository.getAllProjects();
+export const getAllProjects = async (userId) => {
+  return projectRepository.getAllProjects(userId);
 };
 
-export const getProjectById = async (id) => {
-  return await projectRepository.getProjectById(id);
+export const getProjectById = async (id, userId) => {
+  return projectRepository.getProjectById(id, userId);
 };
 
-export const updateProject = async (id, data) => {
-  return await projectRepository.updateProject(id, data);
+export const updateProject = async (id, userId, data) => {
+  return projectRepository.updateProject(id, userId, data);
 };
 
-export const deleteProject = async (id) => {
-  return await projectRepository.deleteProject(id);
+export const deleteProject = async (id, userId) => {
+  return projectRepository.deleteProject(id, userId);
 };

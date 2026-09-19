@@ -1,8 +1,34 @@
 import * as serviceService from "../services/service.service.js";
+import * as projectService from "../services/project.service.js";
 
 export const createService = async (req, res) => {
   try {
-    const service = await serviceService.createService(req.body);
+    const { projectId, name, status } = req.body;
+
+    if (!projectId || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId and name are required",
+      });
+    }
+
+    const project = await projectService.getProjectById(
+      Number(projectId),
+      req.user.id
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const service = await serviceService.createService({
+      projectId,
+      name,
+      status,
+    });
 
     res.status(201).json({
       success: true,
@@ -20,7 +46,7 @@ export const createService = async (req, res) => {
 
 export const getAllServices = async (req, res) => {
   try {
-    const services = await serviceService.getAllServices();
+    const services = await serviceService.getAllServices(req.user.id);
 
     res.json({
       success: true,
@@ -38,9 +64,10 @@ export const getAllServices = async (req, res) => {
 
 export const getServiceById = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const service = await serviceService.getServiceById(id);
+    const service = await serviceService.getServiceById(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!service) {
       return res.status(404).json({
@@ -65,10 +92,9 @@ export const getServiceById = async (req, res) => {
 
 export const updateService = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
     const service = await serviceService.updateService(
-      id,
+      Number(req.params.id),
+      req.user.id,
       req.body
     );
 
@@ -95,9 +121,10 @@ export const updateService = async (req, res) => {
 
 export const deleteService = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const service = await serviceService.deleteService(id);
+    const service = await serviceService.deleteService(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!service) {
       return res.status(404).json({
@@ -108,7 +135,7 @@ export const deleteService = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Service deleted successfully",
+      data: service,
     });
   } catch (error) {
     console.error("Delete service error:", error);

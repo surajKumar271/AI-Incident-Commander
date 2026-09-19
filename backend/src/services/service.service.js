@@ -1,21 +1,21 @@
 import * as serviceRepository from "../repositories/service.repository.js";
 
 export const createService = async (data) => {
-  return await serviceRepository.createService(data);
+  return serviceRepository.createService(data);
 };
 
-export const getAllServices = async () => {
-  return await serviceRepository.getAllServices();
+export const getAllServices = async (userId) => {
+  return serviceRepository.getAllServices(userId);
 };
 
-export const getServiceById = async (id) => {
-  return await serviceRepository.getServiceById(id);
+export const getServiceById = async (id, userId) => {
+  return serviceRepository.getServiceById(id, userId);
 };
 
-export const updateService = async (id, data) => {
-  return await serviceRepository.updateService(id, data);
+export const updateService = async (id, userId, data) => {
+  return serviceRepository.updateService(id, userId, data);
 };
 
-export const deleteService = async (id) => {
-  return await serviceRepository.deleteService(id);
+export const deleteService = async (id, userId) => {
+  return serviceRepository.deleteService(id, userId);
 };

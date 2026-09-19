@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { services } from "../db/schema.js";
+import { services, projects } from "../db/schema.js";
 
 export const createService = async (data) => {
   const [service] = await db
@@ -11,34 +11,63 @@ export const createService = async (data) => {
   return service;
 };
 
-export const getAllServices = async () => {
-  return await db.select().from(services);
+export const getAllServices = async (userId) => {
+  return db
+    .select({
+      id: services.id,
+      projectId: services.projectId,
+      name: services.name,
+      status: services.status,
+      createdAt: services.createdAt,
+    })
+    .from(services)
+    .innerJoin(projects, eq(services.projectId, projects.id))
+    .where(eq(projects.userId, userId));
 };
 
-export const getServiceById = async (id) => {
+export const getServiceById = async (id, userId) => {
   const [service] = await db
-    .select()
+    .select({
+      id: services.id,
+      projectId: services.projectId,
+      name: services.name,
+      status: services.status,
+      createdAt: services.createdAt,
+    })
     .from(services)
-    .where(eq(services.id, id));
+    .innerJoin(projects, eq(services.projectId, projects.id))
+    .where(
+      and(
+        eq(services.id, id),
+        eq(projects.userId, userId)
+      )
+    );
 
   return service;
 };
 
-export const updateService = async (id, data) => {
+export const updateService = async (id, userId, data) => {
   const [service] = await db
     .update(services)
     .set(data)
     .where(eq(services.id, id))
     .returning();
 
-  return service;
+  if (!service) return undefined;
+
+  // Verify ownership after update
+  return getServiceById(service.id, userId);
 };
 
-export const deleteService = async (id) => {
-  const [service] = await db
+export const deleteService = async (id, userId) => {
+  const service = await getServiceById(id, userId);
+
+  if (!service) return undefined;
+
+  const [deletedService] = await db
     .delete(services)
     .where(eq(services.id, id))
     .returning();
 
-  return service;
+  return deletedService;
 };
