@@ -104,6 +104,29 @@ export const logs = pgTable("logs", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
 });
 
+
+// Events
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+
+  projectId: integer("project_id")
+    .notNull()
+    .references(() => projects.id),
+
+  serviceId: integer("service_id")
+    .references(() => services.id),
+
+  type: varchar("type", { length: 30 }).notNull(),
+
+  level: varchar("level", { length: 20 }).notNull(),
+
+  message: text("message").notNull(),
+
+  metadata: jsonb("metadata"),
+
+  timestamp: timestamp("timestamp").defaultNow().notNull(),
+});
+
 // Agent Runs
 export const agentRuns = pgTable("agent_runs", {
   id: serial("id").primaryKey(),
