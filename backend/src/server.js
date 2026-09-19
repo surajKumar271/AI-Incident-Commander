@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 
-
+import authRoutes from "./routes/auth.routes.js";
 import projectRoutes from "./routes/project.routes.js";
 import eventRoutes from "./routes/event.routes.js";
 import incidentRoutes from "./routes/incident.routes.js";
@@ -21,6 +21,8 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+
+app.use("/api/auth", authRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/incidents", incidentRoutes);

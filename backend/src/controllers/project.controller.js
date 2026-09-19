@@ -2,7 +2,10 @@ import * as projectService from "../services/project.service.js";
 
 export const createProject = async (req, res) => {
   try {
-    const project = await projectService.createProject(req.body);
+    const project = await projectService.createProject({
+      ...req.body,
+      userId: req.user.id,
+    });
 
     res.status(201).json({
       success: true,
@@ -20,7 +23,7 @@ export const createProject = async (req, res) => {
 
 export const getAllProjects = async (req, res) => {
   try {
-    const projects = await projectService.getAllProjects();
+    const projects = await projectService.getAllProjects(req.user.id);
 
     res.json({
       success: true,
@@ -38,9 +41,10 @@ export const getAllProjects = async (req, res) => {
 
 export const getProjectById = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const project = await projectService.getProjectById(id);
+    const project = await projectService.getProjectById(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!project) {
       return res.status(404).json({
@@ -65,10 +69,9 @@ export const getProjectById = async (req, res) => {
 
 export const updateProject = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
     const project = await projectService.updateProject(
-      id,
+      Number(req.params.id),
+      req.user.id,
       req.body
     );
 
@@ -95,9 +98,10 @@ export const updateProject = async (req, res) => {
 
 export const deleteProject = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const project = await projectService.deleteProject(id);
+    const project = await projectService.deleteProject(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!project) {
       return res.status(404).json({
@@ -108,7 +112,7 @@ export const deleteProject = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Project deleted successfully",
+      data: project,
     });
   } catch (error) {
     console.error("Delete project error:", error);

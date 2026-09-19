@@ -12,28 +12,35 @@ import {
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
 
-  name: varchar("name", {
-    length: 100,
-  }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
 
-  email: varchar("email", {
-    length: 255,
-  }).notNull().unique(),
+  email: varchar("email", { length: 255 })
+    .notNull()
+    .unique(),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  password: varchar("password", { length: 255 })
+    .notNull(),
+
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
 });
 
 // Projects
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
 
-  name: varchar("name", {
-    length: 150,
-  }).notNull(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id),
+
+  name: varchar("name", { length: 150 }).notNull(),
 
   description: text("description"),
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at")
+    .defaultNow()
+    .notNull(),
 });
 
 // Services

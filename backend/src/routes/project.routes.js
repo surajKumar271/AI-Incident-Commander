@@ -8,7 +8,11 @@ import {
   deleteProject,
 } from "../controllers/project.controller.js";
 
+import { authenticate } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
+
+router.use(authenticate);
 
 router.post("/", createProject);
 router.get("/", getAllProjects);

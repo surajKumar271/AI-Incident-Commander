@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { projects } from "../db/schema.js";
 
@@ -11,33 +11,51 @@ export const createProject = async (data) => {
   return project;
 };
 
-export const getAllProjects = async () => {
-  return await db.select().from(projects);
+export const getAllProjects = async (userId) => {
+  return db
+    .select()
+    .from(projects)
+    .where(eq(projects.userId, userId));
 };
 
-export const getProjectById = async (id) => {
+export const getProjectById = async (id, userId) => {
   const [project] = await db
     .select()
     .from(projects)
-    .where(eq(projects.id, id));
+    .where(
+      and(
+        eq(projects.id, id),
+        eq(projects.userId, userId)
+      )
+    );
 
   return project;
 };
 
-export const updateProject = async (id, data) => {
+export const updateProject = async (id, userId, data) => {
   const [project] = await db
     .update(projects)
     .set(data)
-    .where(eq(projects.id, id))
+    .where(
+      and(
+        eq(projects.id, id),
+        eq(projects.userId, userId)
+      )
+    )
     .returning();
 
   return project;
 };
 
-export const deleteProject = async (id) => {
+export const deleteProject = async (id, userId) => {
   const [project] = await db
     .delete(projects)
-    .where(eq(projects.id, id))
+    .where(
+      and(
+        eq(projects.id, id),
+        eq(projects.userId, userId)
+      )
+    )
     .returning();
 
   return project;
