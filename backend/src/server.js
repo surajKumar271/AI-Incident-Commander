@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 
+import projectRoutes from "./routes/project.routes.js";
 import incidentRoutes from "./routes/incident.routes.js";
 
 const app = express();
@@ -16,6 +17,7 @@ app.get("/api/health", (req, res) => {
   });
 });
 
+app.use("/api/projects", projectRoutes);
 app.use("/api/incidents", incidentRoutes);
 
 const PORT = process.env.PORT || 5000;
