@@ -4,10 +4,28 @@ meta {
   seq: 1
 }
 
-get {
-  url: 
-  body: none
+post {
+  url: {{baseUrl}}/api/events
+  body: json
   auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "projectId": 4,
+    "serviceId": 1,
+    "type": "INCIDENT",
+    "level": "CRITICAL",
+    "message": "Production database is completely unavailable",
+    "metadata": {
+      "errorCode": "DB_DOWN"
+    }
+  }
 }
 
 settings {

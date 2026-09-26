@@ -4,13 +4,25 @@ meta {
   seq: 4
 }
 
-get {
-  url: 
-  body: none
+patch {
+  url: {{baseUrl}}/api/incidents/2
+  body: json
   auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "INVESTIGATING"
+  }
 }
 
 settings {
   encodeUrl: true
+  timeout: 0
   forwardAuthorizationHeader: false
 }

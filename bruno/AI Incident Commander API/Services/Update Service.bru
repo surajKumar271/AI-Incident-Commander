@@ -7,6 +7,7 @@ meta {
 patch {
   url: {{baseUrl}}/api/services/1
   body: json
+  auth: none
 }
 
 headers {
@@ -15,5 +16,7 @@ headers {
 }
 
 body:json {
-  "status": "DEGRADED"
+  {
+    "status": "HEALTHY"
+  }
 }
