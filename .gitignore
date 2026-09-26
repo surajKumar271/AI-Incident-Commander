@@ -19,6 +19,8 @@ dist-ssr/
 .env.*
 !.env.example
 
+bruno/**/environments/Local.bru
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

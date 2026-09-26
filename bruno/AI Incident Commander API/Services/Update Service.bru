@@ -1,0 +1,19 @@
+meta {
+  name: Update Service
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/api/services/1
+  body: json
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  "status": "DEGRADED"
+}

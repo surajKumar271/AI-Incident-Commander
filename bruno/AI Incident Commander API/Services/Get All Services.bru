@@ -1,0 +1,13 @@
+meta {
+  name: Get All Services
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/services
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}

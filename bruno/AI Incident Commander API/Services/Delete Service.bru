@@ -1,0 +1,13 @@
+meta {
+  name: Delete Service
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/services/1
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}

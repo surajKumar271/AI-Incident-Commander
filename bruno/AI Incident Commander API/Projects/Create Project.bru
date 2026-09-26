@@ -1,0 +1,20 @@
+meta {
+  name: Create Project
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/projects
+  body: json
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  "name": "AI Incident Commander",
+  "description": "AI-powered production incident investigation and recovery system"
+}
