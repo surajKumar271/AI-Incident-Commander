@@ -47,16 +47,19 @@ export const getServiceById = async (id, userId) => {
 };
 
 export const updateService = async (id, userId, data) => {
-  const [service] = await db
+  const existingService = await getServiceById(id, userId);
+
+  if (!existingService) {
+    return undefined;
+  }
+
+  const [updatedService] = await db
     .update(services)
     .set(data)
     .where(eq(services.id, id))
     .returning();
 
-  if (!service) return undefined;
-
-  // Verify ownership after update
-  return getServiceById(service.id, userId);
+  return updatedService;
 };
 
 export const deleteService = async (id, userId) => {
