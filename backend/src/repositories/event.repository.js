@@ -1,6 +1,7 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
+
 import { db } from "../db/index.js";
-import { events } from "../db/schema.js";
+import { events, projects } from "../db/schema.js";
 
 export const createEvent = async (data) => {
   const [event] = await db
@@ -11,18 +12,54 @@ export const createEvent = async (data) => {
   return event;
 };
 
-export const getEventsByProjectId = async (projectId) => {
-  return await db
-    .select()
+export const getEventsByProjectId = async (projectId, userId) => {
+  return db
+    .select({
+      id: events.id,
+      projectId: events.projectId,
+      serviceId: events.serviceId,
+      type: events.type,
+      level: events.level,
+      message: events.message,
+      metadata: events.metadata,
+      timestamp: events.timestamp,
+    })
     .from(events)
-    .where(eq(events.projectId, projectId))
+    .innerJoin(
+      projects,
+      eq(events.projectId, projects.id)
+    )
+    .where(
+      and(
+        eq(events.projectId, projectId),
+        eq(projects.userId, userId)
+      )
+    )
     .orderBy(desc(events.timestamp));
 };
 
-export const getEventsByServiceId = async (serviceId) => {
-  return await db
-    .select()
+export const getEventsByServiceId = async (serviceId, userId) => {
+  return db
+    .select({
+      id: events.id,
+      projectId: events.projectId,
+      serviceId: events.serviceId,
+      type: events.type,
+      level: events.level,
+      message: events.message,
+      metadata: events.metadata,
+      timestamp: events.timestamp,
+    })
     .from(events)
-    .where(eq(events.serviceId, serviceId))
+    .innerJoin(
+      projects,
+      eq(events.projectId, projects.id)
+    )
+    .where(
+      and(
+        eq(events.serviceId, serviceId),
+        eq(projects.userId, userId)
+      )
+    )
     .orderBy(desc(events.timestamp));
 };

@@ -1,12 +1,49 @@
 import * as eventService from "../services/event.service.js";
+import * as projectService from "../services/project.service.js";
 
 export const createEvent = async (req, res) => {
   try {
-    const event = await eventService.createEvent(req.body);
+    const {
+      projectId,
+      serviceId,
+      type,
+      level,
+      message,
+      metadata,
+    } = req.body;
+
+    if (!projectId || !type || !level || !message) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "projectId, type, level and message are required",
+      });
+    }
+
+    const project = await projectService.getProjectById(
+      Number(projectId),
+      req.user.id
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const result = await eventService.createEvent({
+      projectId,
+      serviceId,
+      type,
+      level,
+      message,
+      metadata,
+    });
 
     res.status(201).json({
       success: true,
-      data: event,
+      data: result,
     });
   } catch (error) {
     console.error("Create event error:", error);
@@ -20,9 +57,10 @@ export const createEvent = async (req, res) => {
 
 export const getEventsByProjectId = async (req, res) => {
   try {
-    const projectId = Number(req.params.projectId);
-
-    const events = await eventService.getEventsByProjectId(projectId);
+    const events = await eventService.getEventsByProjectId(
+      Number(req.params.projectId),
+      req.user.id
+    );
 
     res.json({
       success: true,
@@ -33,16 +71,17 @@ export const getEventsByProjectId = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to fetch events",
+      message: "Failed to fetch project events",
     });
   }
 };
 
 export const getEventsByServiceId = async (req, res) => {
   try {
-    const serviceId = Number(req.params.serviceId);
-
-    const events = await eventService.getEventsByServiceId(serviceId);
+    const events = await eventService.getEventsByServiceId(
+      Number(req.params.serviceId),
+      req.user.id
+    );
 
     res.json({
       success: true,
@@ -53,7 +92,7 @@ export const getEventsByServiceId = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to fetch events",
+      message: "Failed to fetch service events",
     });
   }
 };

@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+
 import { db } from "../db/index.js";
-import { logs } from "../db/schema.js";
+import { logs, incidents, projects } from "../db/schema.js";
 
 export const createLog = async (data) => {
   const [log] = await db
@@ -11,23 +12,69 @@ export const createLog = async (data) => {
   return log;
 };
 
-export const getLogsByIncidentId = async (incidentId) => {
-  return await db
-    .select()
+export const getLogsByIncidentId = async (incidentId, userId) => {
+  return db
+    .select({
+      id: logs.id,
+      incidentId: logs.incidentId,
+      level: logs.level,
+      message: logs.message,
+      metadata: logs.metadata,
+      timestamp: logs.timestamp,
+    })
     .from(logs)
-    .where(eq(logs.incidentId, incidentId));
+    .innerJoin(
+      incidents,
+      eq(logs.incidentId, incidents.id)
+    )
+    .innerJoin(
+      projects,
+      eq(incidents.projectId, projects.id)
+    )
+    .where(
+      and(
+        eq(logs.incidentId, incidentId),
+        eq(projects.userId, userId)
+      )
+    );
 };
 
-export const getLogById = async (id) => {
+export const getLogById = async (id, userId) => {
   const [log] = await db
-    .select()
+    .select({
+      id: logs.id,
+      incidentId: logs.incidentId,
+      level: logs.level,
+      message: logs.message,
+      metadata: logs.metadata,
+      timestamp: logs.timestamp,
+    })
     .from(logs)
-    .where(eq(logs.id, id));
+    .innerJoin(
+      incidents,
+      eq(logs.incidentId, incidents.id)
+    )
+    .innerJoin(
+      projects,
+      eq(incidents.projectId, projects.id)
+    )
+    .where(
+      and(
+        eq(logs.id, id),
+        eq(projects.userId, userId)
+      )
+    );
 
   return log;
 };
 
-export const deleteLog = async (id) => {
+export const deleteLog = async (id, userId) => {
+  const existingLog = await getLogById(id, userId);
+
+  if (!existingLog) {
+    return undefined;
+  }
+
   const [log] = await db
     .delete(logs)
     .where(eq(logs.id, id))

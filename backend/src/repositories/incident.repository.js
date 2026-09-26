@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+
 import { db } from "../db/index.js";
-import { incidents } from "../db/schema.js";
+import { incidents, projects } from "../db/schema.js";
 
 export const createIncident = async (data) => {
   const [incident] = await db
@@ -11,20 +12,62 @@ export const createIncident = async (data) => {
   return incident;
 };
 
-export const getAllIncidents = async () => {
-  return await db.select().from(incidents);
+export const getAllIncidents = async (userId) => {
+  return db
+    .select({
+      id: incidents.id,
+      projectId: incidents.projectId,
+      serviceId: incidents.serviceId,
+      title: incidents.title,
+      description: incidents.description,
+      severity: incidents.severity,
+      status: incidents.status,
+      createdAt: incidents.createdAt,
+      resolvedAt: incidents.resolvedAt,
+    })
+    .from(incidents)
+    .innerJoin(
+      projects,
+      eq(incidents.projectId, projects.id)
+    )
+    .where(eq(projects.userId, userId));
 };
 
-export const getIncidentById = async (id) => {
+export const getIncidentById = async (id, userId) => {
   const [incident] = await db
-    .select()
+    .select({
+      id: incidents.id,
+      projectId: incidents.projectId,
+      serviceId: incidents.serviceId,
+      title: incidents.title,
+      description: incidents.description,
+      severity: incidents.severity,
+      status: incidents.status,
+      createdAt: incidents.createdAt,
+      resolvedAt: incidents.resolvedAt,
+    })
     .from(incidents)
-    .where(eq(incidents.id, id));
+    .innerJoin(
+      projects,
+      eq(incidents.projectId, projects.id)
+    )
+    .where(
+      and(
+        eq(incidents.id, id),
+        eq(projects.userId, userId)
+      )
+    );
 
   return incident;
 };
 
-export const updateIncident = async (id, data) => {
+export const updateIncident = async (id, userId, data) => {
+  const existingIncident = await getIncidentById(id, userId);
+
+  if (!existingIncident) {
+    return undefined;
+  }
+
   const [incident] = await db
     .update(incidents)
     .set(data)
@@ -34,7 +77,13 @@ export const updateIncident = async (id, data) => {
   return incident;
 };
 
-export const deleteIncident = async (id) => {
+export const deleteIncident = async (id, userId) => {
+  const existingIncident = await getIncidentById(id, userId);
+
+  if (!existingIncident) {
+    return undefined;
+  }
+
   const [incident] = await db
     .delete(incidents)
     .where(eq(incidents.id, id))

@@ -1,17 +1,20 @@
 import * as logRepository from "../repositories/log.repository.js";
 
 export const createLog = async (data) => {
-  return await logRepository.createLog(data);
+  return logRepository.createLog(data);
 };
 
-export const getLogsByIncidentId = async (incidentId) => {
-  return await logRepository.getLogsByIncidentId(incidentId);
+export const getLogsByIncidentId = async (incidentId, userId) => {
+  return logRepository.getLogsByIncidentId(
+    incidentId,
+    userId
+  );
 };
 
-export const getLogById = async (id) => {
-  return await logRepository.getLogById(id);
+export const getLogById = async (id, userId) => {
+  return logRepository.getLogById(id, userId);
 };
 
-export const deleteLog = async (id) => {
-  return await logRepository.deleteLog(id);
+export const deleteLog = async (id, userId) => {
+  return logRepository.deleteLog(id, userId);
 };

@@ -1,8 +1,45 @@
 import * as incidentService from "../services/incident.service.js";
+import * as projectService from "../services/project.service.js";
+
 
 export const createIncident = async (req, res) => {
   try {
-    const incident = await incidentService.createIncident(req.body);
+    const {
+      projectId,
+      serviceId,
+      title,
+      description,
+      severity,
+      status,
+    } = req.body;
+
+    if (!projectId || !title) {
+      return res.status(400).json({
+        success: false,
+        message: "projectId and title are required",
+      });
+    }
+
+    const project = await projectService.getProjectById(
+      Number(projectId),
+      req.user.id
+    );
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    const incident = await incidentService.createIncident({
+      projectId,
+      serviceId,
+      title,
+      description,
+      severity,
+      status,
+    });
 
     res.status(201).json({
       success: true,
@@ -20,7 +57,9 @@ export const createIncident = async (req, res) => {
 
 export const getAllIncidents = async (req, res) => {
   try {
-    const incidents = await incidentService.getAllIncidents();
+    const incidents = await incidentService.getAllIncidents(
+      req.user.id
+    );
 
     res.json({
       success: true,
@@ -38,9 +77,10 @@ export const getAllIncidents = async (req, res) => {
 
 export const getIncidentById = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const incident = await incidentService.getIncidentById(id);
+    const incident = await incidentService.getIncidentById(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!incident) {
       return res.status(404).json({
@@ -65,10 +105,9 @@ export const getIncidentById = async (req, res) => {
 
 export const updateIncident = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
     const incident = await incidentService.updateIncident(
-      id,
+      Number(req.params.id),
+      req.user.id,
       req.body
     );
 
@@ -95,9 +134,10 @@ export const updateIncident = async (req, res) => {
 
 export const deleteIncident = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const incident = await incidentService.deleteIncident(id);
+    const incident = await incidentService.deleteIncident(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!incident) {
       return res.status(404).json({
@@ -108,7 +148,7 @@ export const deleteIncident = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Incident deleted successfully",
+      data: incident,
     });
   } catch (error) {
     console.error("Delete incident error:", error);

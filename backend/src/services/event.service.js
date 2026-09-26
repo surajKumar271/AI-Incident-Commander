@@ -13,10 +13,16 @@ export const createEvent = async (data) => {
   };
 };
 
-export const getEventsByProjectId = async (projectId) => {
-  return await eventRepository.getEventsByProjectId(projectId);
+export const getEventsByProjectId = async (projectId, userId) => {
+  return eventRepository.getEventsByProjectId(
+    projectId,
+    userId
+  );
 };
 
-export const getEventsByServiceId = async (serviceId) => {
-  return await eventRepository.getEventsByServiceId(serviceId);
+export const getEventsByServiceId = async (serviceId, userId) => {
+  return eventRepository.getEventsByServiceId(
+    serviceId,
+    userId
+  );
 };

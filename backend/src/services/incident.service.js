@@ -1,21 +1,28 @@
 import * as incidentRepository from "../repositories/incident.repository.js";
 
 export const createIncident = async (data) => {
-  return await incidentRepository.createIncident(data);
+  return incidentRepository.createIncident(data);
 };
 
-export const getAllIncidents = async () => {
-  return await incidentRepository.getAllIncidents();
+export const getAllIncidents = async (userId) => {
+  return incidentRepository.getAllIncidents(userId);
 };
 
-export const getIncidentById = async (id) => {
-  return await incidentRepository.getIncidentById(id);
+export const getIncidentById = async (id, userId) => {
+  return incidentRepository.getIncidentById(id, userId);
 };
 
-export const updateIncident = async (id, data) => {
-  return await incidentRepository.updateIncident(id, data);
+export const updateIncident = async (id, userId, data) => {
+  return incidentRepository.updateIncident(
+    id,
+    userId,
+    data
+  );
 };
 
-export const deleteIncident = async (id) => {
-  return await incidentRepository.deleteIncident(id);
+export const deleteIncident = async (id, userId) => {
+  return incidentRepository.deleteIncident(
+    id,
+    userId
+  );
 };

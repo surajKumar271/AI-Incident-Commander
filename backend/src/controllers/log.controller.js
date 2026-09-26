@@ -1,8 +1,40 @@
 import * as logService from "../services/log.service.js";
+import * as incidentService from "../services/incident.service.js";
 
 export const createLog = async (req, res) => {
   try {
-    const log = await logService.createLog(req.body);
+    const {
+      incidentId,
+      level,
+      message,
+      metadata,
+    } = req.body;
+
+    if (!incidentId || !level || !message) {
+      return res.status(400).json({
+        success: false,
+        message: "incidentId, level and message are required",
+      });
+    }
+
+    const incident = await incidentService.getIncidentById(
+      Number(incidentId),
+      req.user.id
+    );
+
+    if (!incident) {
+      return res.status(404).json({
+        success: false,
+        message: "Incident not found",
+      });
+    }
+
+    const log = await logService.createLog({
+      incidentId,
+      level,
+      message,
+      metadata,
+    });
 
     res.status(201).json({
       success: true,
@@ -20,16 +52,17 @@ export const createLog = async (req, res) => {
 
 export const getLogsByIncidentId = async (req, res) => {
   try {
-    const incidentId = Number(req.params.incidentId);
-
-    const logs = await logService.getLogsByIncidentId(incidentId);
+    const logs = await logService.getLogsByIncidentId(
+      Number(req.params.incidentId),
+      req.user.id
+    );
 
     res.json({
       success: true,
       data: logs,
     });
   } catch (error) {
-    console.error("Get incident logs error:", error);
+    console.error("Get logs error:", error);
 
     res.status(500).json({
       success: false,
@@ -40,9 +73,10 @@ export const getLogsByIncidentId = async (req, res) => {
 
 export const getLogById = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const log = await logService.getLogById(id);
+    const log = await logService.getLogById(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!log) {
       return res.status(404).json({
@@ -67,9 +101,10 @@ export const getLogById = async (req, res) => {
 
 export const deleteLog = async (req, res) => {
   try {
-    const id = Number(req.params.id);
-
-    const log = await logService.deleteLog(id);
+    const log = await logService.deleteLog(
+      Number(req.params.id),
+      req.user.id
+    );
 
     if (!log) {
       return res.status(404).json({
@@ -80,7 +115,7 @@ export const deleteLog = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Log deleted successfully",
+      data: log,
     });
   } catch (error) {
     console.error("Delete log error:", error);

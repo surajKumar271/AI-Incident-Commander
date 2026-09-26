@@ -7,7 +7,11 @@ import {
   deleteLog,
 } from "../controllers/log.controller.js";
 
+import { authenticate } from "../middleware/auth.middleware.js";
+
 const router = express.Router();
+
+router.use(authenticate);
 
 router.post("/", createLog);
 router.get("/incident/:incidentId", getLogsByIncidentId);
