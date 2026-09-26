@@ -8,10 +8,29 @@ export const processEvent = async (event) => {
   if (!isCritical) {
     return {
       incidentCreated: false,
+      incident: null,
       event,
     };
   }
 
+  // Check for an existing open incident
+  const existingIncident = await incidentRepository.findRecentIncident({
+    projectId: event.projectId,
+    serviceId: event.serviceId,
+    title: event.message,
+  });
+
+  // Correlate with existing incident
+  if (existingIncident) {
+    return {
+      incidentCreated: false,
+      incident: existingIncident,
+      correlated: true,
+      event,
+    };
+  }
+
+  // Create a new incident
   const incident = await incidentRepository.createIncident({
     projectId: event.projectId,
     serviceId: event.serviceId,
@@ -24,6 +43,7 @@ export const processEvent = async (event) => {
   return {
     incidentCreated: true,
     incident,
+    correlated: false,
     event,
   };
 };

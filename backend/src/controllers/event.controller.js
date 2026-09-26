@@ -96,3 +96,26 @@ export const getEventsByServiceId = async (req, res) => {
     });
   }
 };
+
+export const getEventsByIncidentId = async (req, res) => {
+  try {
+    const incidentId = Number(req.params.incidentId);
+
+    const events = await eventService.getEventsByIncidentId(
+      incidentId,
+      req.user.id
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: events,
+    });
+  } catch (error) {
+    console.error("Get incident events error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch incident events",
+    });
+  }
+};

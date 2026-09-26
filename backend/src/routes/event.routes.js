@@ -1,5 +1,5 @@
 import express from "express";
-
+import * as eventController from "../controllers/event.controller.js";
 import {
   createEvent,
   getEventsByProjectId,
@@ -22,6 +22,11 @@ router.get(
 router.get(
   "/service/:serviceId",
   getEventsByServiceId
+);
+
+router.get(
+  "/incident/:incidentId",
+  eventController.getEventsByIncidentId
 );
 
 export default router;

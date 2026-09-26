@@ -6,10 +6,20 @@ export const createEvent = async (data) => {
 
   const result = await processEvent(event);
 
+  let updatedEvent = event;
+
+  if (result.incident) {
+    updatedEvent = await eventRepository.attachEventToIncident(
+      event.id,
+      result.incident.id
+    );
+  }
+
   return {
-    event,
+    event: updatedEvent,
     incident: result.incident || null,
     incidentCreated: result.incidentCreated,
+    correlated: result.correlated || false,
   };
 };
 
@@ -26,3 +36,6 @@ export const getEventsByServiceId = async (serviceId, userId) => {
     userId
   );
 };
+
+export const getEventsByIncidentId = async (incidentId, userId) =>
+  eventRepository.getEventsByIncidentId(incidentId, userId);

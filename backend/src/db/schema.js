@@ -123,15 +123,22 @@ export const events = pgTable("events", {
   serviceId: integer("service_id")
     .references(() => services.id),
 
-  type: varchar("type", { length: 30 }).notNull(),
+  incidentId: integer("incident_id")
+    .references(() => incidents.id),
 
-  level: varchar("level", { length: 20 }).notNull(),
+  type: varchar("type", { length: 30 })
+    .notNull(),
 
-  message: text("message").notNull(),
+  level: varchar("level", { length: 20 })
+    .notNull(),
+
+  message: text("message")
+    .notNull(),
 
   metadata: jsonb("metadata"),
-
-  timestamp: timestamp("timestamp").defaultNow().notNull(),
+  timestamp: timestamp("timestamp")
+    .defaultNow()
+    .notNull(),
 });
 
 // Agent Runs

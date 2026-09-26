@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 
 import { db } from "../db/index.js";
 import { incidents, projects } from "../db/schema.js";
@@ -64,9 +64,7 @@ export const getIncidentById = async (id, userId) => {
 export const updateIncident = async (id, userId, data) => {
   const existingIncident = await getIncidentById(id, userId);
 
-  if (!existingIncident) {
-    return undefined;
-  }
+  if (!existingIncident) return undefined;
 
   const [incident] = await db
     .update(incidents)
@@ -88,6 +86,41 @@ export const deleteIncident = async (id, userId) => {
     .delete(incidents)
     .where(eq(incidents.id, id))
     .returning();
+
+  return incident;
+};
+
+export const findRecentIncident = async ({
+  projectId,
+  serviceId,
+  title,
+}) => {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+  const [incident] = await db
+    .select({
+      id: incidents.id,
+      projectId: incidents.projectId,
+      serviceId: incidents.serviceId,
+      title: incidents.title,
+      description: incidents.description,
+      severity: incidents.severity,
+      status: incidents.status,
+      createdAt: incidents.createdAt,
+      resolvedAt: incidents.resolvedAt,
+    })
+    .from(incidents)
+    .where(
+      and(
+        eq(incidents.projectId, projectId),
+        eq(incidents.serviceId, serviceId),
+        eq(incidents.title, title),
+        eq(incidents.status, "OPEN"),
+        gt(incidents.createdAt, thirtyMinutesAgo)
+      )
+    )
+    .orderBy(desc(incidents.createdAt))
+    .limit(1);
 
   return incident;
 };
