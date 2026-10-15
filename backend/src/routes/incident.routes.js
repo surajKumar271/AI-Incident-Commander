@@ -6,6 +6,7 @@ import {
   getIncidentById,
   updateIncident,
   deleteIncident,
+  analyzeIncident,
 } from "../controllers/incident.controller.js";
 
 import { authenticate } from "../middleware/auth.middleware.js";
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.use(authenticate);
 
+router.post("/:id/analyze", analyzeIncident);
 router.post("/", createIncident);
 router.get("/", getAllIncidents);
 router.get("/:id", getIncidentById);

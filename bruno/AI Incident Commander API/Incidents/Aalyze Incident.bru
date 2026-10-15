@@ -1,0 +1,22 @@
+meta {
+  name: Aalyze Incident
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/incidents/2/analyze
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  forwardAuthorizationHeader: false
+}
