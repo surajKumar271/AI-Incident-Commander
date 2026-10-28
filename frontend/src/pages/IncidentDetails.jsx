@@ -49,6 +49,9 @@ function normalizeLog(log) {
 export function IncidentDetails() {
   const { id } = useParams();
 
+  console.log('Incident route ID:', id);
+console.log('Parsed incident ID:', Number(id));
+
   const [incident, setIncident] = useState(null);
   const [logs, setLogs] = useState([]);
   const [serviceName, setServiceName] = useState('Unknown service');
@@ -64,9 +67,10 @@ export function IncidentDetails() {
     setPageError('');
 
     try {
-      const [incidentResponse, logsResponse] = await Promise.all([
+      const [incidentResponse, logsResponse,analysisResponse] = await Promise.all([
         apiFetch(`/api/incidents/${id}`),
         apiFetch(`/api/logs/incident/${id}`),
+        apiFetch(`/api/incidents/${id}/analysis`),
       ]);
 
       const record = incidentResponse.data;
@@ -78,6 +82,7 @@ export function IncidentDetails() {
 
       setIncident(record);
       setLogs(logRecords);
+      setAnalysisResult(analysisResponse.data ?? null);
 
       // Resolve the service name using the existing services endpoint.
       if (record.serviceId) {

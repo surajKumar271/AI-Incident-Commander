@@ -4,6 +4,7 @@ import * as logService from "../services/log.service.js";
 import * as serviceService from "../services/service.service.js";
 import { analyzeIncidentWithAI } from "../services/ai.service.js";
 import { db } from "../db/index.js";
+import { desc, eq, and } from "drizzle-orm";
 import { agentRuns, recoveryActions } from "../db/schema.js";
 
 
@@ -284,6 +285,76 @@ export const analyzeIncident = async (req, res) => {
       message: isAIServiceError
         ? "AI analysis service failed"
         : "Failed to analyze incident",
+    });
+  }
+};
+
+
+export const getIncidentAnalysis = async (req, res) => {
+  try {
+    const incidentId = Number(req.params.id);
+
+    if (!Number.isInteger(incidentId) || incidentId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid incident ID",
+      });
+    }
+
+    // Verify incident ownership before returning saved analysis.
+    const incident = await incidentService.getIncidentById(
+      incidentId,
+      req.user.id
+    );
+
+    if (!incident) {
+      return res.status(404).json({
+        success: false,
+        message: "Incident not found",
+      });
+    }
+
+    const [agentRun] = await db
+      .select()
+      .from(agentRuns)
+      .where(
+        and(
+          eq(agentRuns.incidentId, incidentId),
+          eq(agentRuns.status, "COMPLETED"),
+          eq(agentRuns.agentType, "INCIDENT_ANALYSIS")
+        )
+      )
+      .orderBy(desc(agentRuns.completedAt), desc(agentRuns.id))
+      .limit(1);
+
+    if (!agentRun) {
+      return res.json({
+        success: true,
+        data: null,
+      });
+    }
+
+    const [recoveryAction] = await db
+      .select()
+      .from(recoveryActions)
+      .where(eq(recoveryActions.incidentId, incidentId))
+      .orderBy(desc(recoveryActions.createdAt), desc(recoveryActions.id))
+      .limit(1);
+
+    return res.json({
+      success: true,
+      data: {
+        analysis: agentRun.result,
+        agentRun,
+        recoveryAction: recoveryAction ?? null,
+      },
+    });
+  } catch (error) {
+    console.error("Get incident analysis error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch saved analysis",
     });
   }
 };
