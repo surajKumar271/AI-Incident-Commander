@@ -1,0 +1,22 @@
+meta {
+  name: Get By Id
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/incidents/2
+  body: none
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  forwardAuthorizationHeader: false
+}

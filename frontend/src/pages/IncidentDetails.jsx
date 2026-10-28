@@ -1,270 +1,422 @@
-import React, { useEffect, useMemo, useState } from 'react';
+
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
   ArrowLeftIcon,
-  ActivityIcon,
-  TimerIcon,
-  GaugeIcon,
-  DatabaseIcon,
-  ClockIcon,
-  ServerIcon,
-  GitBranchIcon,
-  GlobeIcon,
-  SparklesIcon,
   BotIcon,
+  ClockIcon,
   FileSearchIcon,
-  LayersIcon,
-  SirenIcon } from
-'lucide-react';
-import { Panel } from '../components/Panel';
-import { MetricCard } from '../components/MetricCard';
+  RefreshCwIcon,
+  ServerIcon,
+  SparklesIcon,
+  SirenIcon,
+  WrenchIcon,
+} from 'lucide-react';
+
+import { apiFetch } from '../utils/api';
 import { SeverityBadge } from '../components/SeverityBadge';
 import { StatusBadge } from '../components/StatusBadge';
-import { HealthChart } from '../components/HealthChart';
 import { EmptyState } from '../components/PageHeader';
-import { AgentTimeline } from '../components/incident/AgentTimeline';
-import { LifecycleRail } from '../components/incident/LifecycleRail';
-import { RootCauseCard } from '../components/incident/RootCauseCard';
-import { HypothesisCard } from '../components/incident/HypothesisCard';
-import { EvidenceTabs } from '../components/incident/EvidenceTabs';
-import { RecoveryCard } from '../components/incident/RecoveryCard';
-import { ApprovalModal } from '../components/incident/ApprovalModal';
-import {
-  getIncident,
-  investigationTimeline,
-  rootCause,
-  alternativeHypotheses,
-  appLogs,
-  dbLogs,
-  metricEvidence,
-  commits,
-  deployments,
-  recovery,
-  recoverySteps,
-  recoveryVerification,
-  errorRateSeries,
-  latencySeries,
-  connectionsSeries } from
-'../data/mockData';
+import { Panel } from '../components/Panel';
+import { LogViewer } from '../components/incident/LogViewer';
+
+function formatDate(value) {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Unknown' : date.toLocaleString();
+}
+
+function formatConfidence(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return 'Unavailable';
+  }
+
+  // The AI service returns confidence on a 0–1 scale.
+  return `${Math.round(value * 100)}%`;
+}
+
+function normalizeLog(log) {
+  const level = String(log.level || 'INFO').toUpperCase();
+
+  return {
+    time: formatDate(log.timestamp),
+    level,
+    msg: log.message || '',
+    src: log.metadata?.source || log.metadata?.host || '',
+  };
+}
 
 export function IncidentDetails() {
   const { id } = useParams();
-  const incident = getIncident(id);
-  const resolved = incident && incident.phase === 'resolved';
 
-  const [state, setState] = useState(resolved ? 'complete' : 'pending');
-  const [completed, setCompleted] = useState(resolved ? recoverySteps.length : 0);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [incident, setIncident] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [serviceName, setServiceName] = useState('Unknown service');
+  const [analysisResult, setAnalysisResult] = useState(null);
 
-  useEffect(() => {
-    setState(resolved ? 'complete' : 'pending');
-    setCompleted(resolved ? recoverySteps.length : 0);
-    setModalOpen(false);
-  }, [id, resolved]);
+  const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [pageError, setPageError] = useState('');
+  const [analysisError, setAnalysisError] = useState('');
 
-  useEffect(() => {
-    if (state !== 'executing') return undefined;
-    if (completed >= recoverySteps.length) {
-      const done = setTimeout(() => setState('complete'), 900);
-      return () => clearTimeout(done);
+  const loadIncident = useCallback(async () => {
+    setLoading(true);
+    setPageError('');
+
+    try {
+      const [incidentResponse, logsResponse] = await Promise.all([
+        apiFetch(`/api/incidents/${id}`),
+        apiFetch(`/api/logs/incident/${id}`),
+      ]);
+
+      const record = incidentResponse.data;
+      const logRecords = logsResponse.data || [];
+
+      if (!record) {
+        throw new Error('Incident was not found.');
+      }
+
+      setIncident(record);
+      setLogs(logRecords);
+
+      // Resolve the service name using the existing services endpoint.
+      if (record.serviceId) {
+        try {
+          const servicesResponse = await apiFetch('/api/services');
+
+          const service = (servicesResponse.data || []).find(
+            (item) => Number(item.id) === Number(record.serviceId)
+          );
+
+          setServiceName(service?.name || 'Unknown service');
+        } catch {
+          setServiceName('Unknown service');
+        }
+      } else {
+        setServiceName('No service assigned');
+      }
+    } catch (error) {
+      setPageError(error.message || 'Failed to load incident details.');
+    } finally {
+      setLoading(false);
     }
-    const t = setTimeout(() => setCompleted((c) => c + 1), 1400);
-    return () => clearTimeout(t);
-  }, [state, completed]);
+  }, [id]);
 
-  const timeline = useMemo(() => {
-    if (state === 'pending' || state === 'rejected') return investigationTimeline;
-    return investigationTimeline.map((item, i) =>
-    i === investigationTimeline.length - 1 ?
-    { ...item, status: 'done', action: 'Recommended rollback v2.4 → v2.3', detail: 'Recommendation approved by on-call engineer.' } :
-    item
-    );
-  }, [state]);
+  useEffect(() => {
+    setIncident(null);
+    setLogs([]);
+    setAnalysisResult(null);
+    setAnalysisError('');
+    setServiceName('Unknown service');
 
-  if (!incident) {
-    return (
-      <div className="rounded-lg border border-line bg-panel">
-        <EmptyState
-          icon={SirenIcon}
-          title="Incident not found"
-          description="This incident may have been merged into another investigation or archived."
-          action={
-          <Link
-            to="/incidents"
-            className="inline-flex items-center gap-1.5 rounded-md border border-line2 bg-panel2 px-3 py-2 text-xs font-semibold text-fg transition-colors duration-150 ease-smooth hover:border-fg3">
-            
-              <ArrowLeftIcon className="h-3.5 w-3.5" aria-hidden="true" />
-              Back to Incidents
-            </Link>
-          } />
-        
-      </div>);
+    loadIncident();
+  }, [loadIncident]);
 
+  async function handleAnalyze() {
+    setAnalyzing(true);
+    setAnalysisError('');
+
+    try {
+      const response = await apiFetch(`/api/incidents/${id}/analyze`, {
+        method: 'POST',
+      });
+
+      if (!response.data?.analysis) {
+        throw new Error('The AI service returned no analysis.');
+      }
+
+      setAnalysisResult(response.data);
+    } catch (error) {
+      setAnalysisError(error.message || 'AI analysis failed.');
+    } finally {
+      setAnalyzing(false);
+    }
   }
 
-  const lifecycleStage = state === 'complete' ? 8 : state === 'executing' ? 7 : 5;
-  const statusLabel =
-  state === 'complete' ? 'Incident Resolved' : state === 'executing' ? 'Executing Recovery' : 'AI Investigation in Progress';
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-line bg-panel p-6 text-sm text-fg2">
+        Loading incident details…
+      </div>
+    );
+  }
+
+  if (pageError || !incident) {
+    return (
+      <div className="space-y-4 rounded-lg border border-line bg-panel p-6">
+        <p className="text-sm text-crit">
+          {pageError || 'Incident not found.'}
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={loadIncident}
+            className="rounded-md border border-line2 px-3 py-2 text-xs font-semibold text-fg"
+          >
+            Retry
+          </button>
+
+          <Link
+            to="/incidents"
+            className="inline-flex items-center gap-2 rounded-md border border-line2 px-3 py-2 text-xs font-semibold text-fg"
+          >
+            <ArrowLeftIcon className="h-3.5 w-3.5" />
+            Back to Incidents
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const analysis = analysisResult?.analysis;
+  const confidence = analysis?.confidence;
+  const isResolved =
+    String(incident.status || '').toUpperCase() === 'RESOLVED';
+
+  const normalizedLogs = logs.map(normalizeLog);
 
   return (
     <div className="space-y-6">
-      <div>
+      {/* Incident header */}
+      <section>
         <Link
           to="/incidents"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-fg3 transition-colors duration-150 ease-smooth hover:text-fg">
-          
-          <ArrowLeftIcon className="h-3.5 w-3.5" aria-hidden="true" />
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-fg3 hover:text-fg"
+        >
+          <ArrowLeftIcon className="h-3.5 w-3.5" />
           Back to Incidents
         </Link>
 
-        <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs text-fg3">{incident.id}</span>
-              <SeverityBadge severity={incident.severity} size="md" uppercase />
-              <StatusBadge status={state === 'complete' ? 'resolved' : incident.status} kind="incident" pulse={state !== 'complete'} />
+              <span className="font-mono text-xs text-fg3">
+                INC-{incident.id}
+              </span>
+
+              <SeverityBadge severity={incident.severity} />
+
+              <StatusBadge
+                status={incident.status}
+                kind="incident"
+              />
             </div>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-fg">{incident.detailTitle}</h1>
-            <p
-              className={`mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium ${
-              state === 'complete' ? 'text-ok' : 'text-ai'}`
-              }>
-              
-              <SparklesIcon className={`h-4 w-4 ${state === 'complete' ? '' : 'animate-breathe'}`} aria-hidden="true" />
-              {statusLabel}
+
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-fg">
+              {incident.title}
+            </h1>
+
+            {incident.description && (
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-fg2">
+                {incident.description}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={analyzing}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-md bg-ai px-4 py-2.5 text-xs font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCwIcon
+              className={`h-3.5 w-3.5 ${analyzing ? 'animate-spin' : ''}`}
+            />
+            {analyzing ? 'Analyzing…' : 'Analyze with AI'}
+          </button>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-line bg-panel p-4">
+            <p className="flex items-center gap-2 text-xs text-fg3">
+              <ClockIcon className="h-3.5 w-3.5" />
+              Created
+            </p>
+            <p className="mt-2 text-sm font-medium text-fg">
+              {formatDate(incident.createdAt)}
             </p>
           </div>
 
-          <dl className="grid shrink-0 grid-cols-2 gap-x-8 gap-y-3 rounded-lg border border-line bg-panel px-4 py-3.5 sm:grid-cols-4 lg:w-auto">
-            <div>
-              <dt className="flex items-center gap-1.5 text-2xs text-fg3">
-                <ClockIcon className="h-3 w-3" aria-hidden="true" />
-                Started
-              </dt>
-              <dd className="mt-1 whitespace-nowrap text-xs font-medium text-fg">{incident.startedAgo}</dd>
-            </div>
-            <div>
-              <dt className="flex items-center gap-1.5 text-2xs text-fg3">
-                <ServerIcon className="h-3 w-3" aria-hidden="true" />
-                Service
-              </dt>
-              <dd className="mt-1 whitespace-nowrap text-xs font-medium text-fg">{incident.service}</dd>
-            </div>
-            <div>
-              <dt className="flex items-center gap-1.5 text-2xs text-fg3">
-                <GitBranchIcon className="h-3 w-3" aria-hidden="true" />
-                Deployment
-              </dt>
-              <dd className="mt-1 whitespace-nowrap font-mono text-xs font-medium text-fg">
-                {state === 'complete' ? recovery.to : incident.deployment}
-              </dd>
-            </div>
-            <div>
-              <dt className="flex items-center gap-1.5 text-2xs text-fg3">
-                <GlobeIcon className="h-3 w-3" aria-hidden="true" />
-                Environment
-              </dt>
-              <dd className="mt-1 whitespace-nowrap text-xs font-medium text-fg">{incident.environment}</dd>
-            </div>
-          </dl>
+          <div className="rounded-lg border border-line bg-panel p-4">
+            <p className="flex items-center gap-2 text-xs text-fg3">
+              <ServerIcon className="h-3.5 w-3.5" />
+              Service
+            </p>
+            <p className="mt-2 text-sm font-medium text-fg">
+              {serviceName}
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-line bg-panel p-4">
+            <p className="flex items-center gap-2 text-xs text-fg3">
+              <BotIcon className="h-3.5 w-3.5" />
+              AI confidence
+            </p>
+            <p className="mt-2 text-sm font-medium text-fg">
+              {formatConfidence(confidence)}
+            </p>
+            <p className="mt-1 text-2xs text-fg3">
+              {analysis ? 'Latest analysis' : 'Run an analysis to populate'}
+            </p>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-4 overflow-x-auto scroll-thin pb-1">
-          <LifecycleRail current={lifecycleStage} />
+      {/* Errors */}
+      {analysisError && (
+        <div
+          role="alert"
+          className="rounded-lg border border-crit/30 bg-crit/10 p-4 text-sm text-crit"
+        >
+          <p className="font-semibold">AI analysis failed</p>
+          <p className="mt-1">{analysisError}</p>
+          <p className="mt-2 text-xs">
+            Check that the backend and Python AI service are running.
+          </p>
         </div>
-      </div>
+      )}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Error Rate" value="18.4%" icon={ActivityIcon} trend="up" delta="↑ 17.6% vs. baseline" tone="crit" emphasis />
-        <MetricCard label="Latency (p95)" value="4.7s" icon={TimerIcon} trend="up" delta="↑ 4.2s vs. baseline" tone="crit" emphasis />
-        <MetricCard label="Requests" value="12.4K" sub="/min" icon={GaugeIcon} trend="flat" delta="+4% vs. 7-day" tone="neutral" />
-        <MetricCard label="Database Connections" value="100" sub="/ 100" icon={DatabaseIcon} trend="up" delta="Pool saturated" tone="crit" emphasis />
-      </div>
+      {/* AI analysis */}
+      <Panel
+        title="AI Investigation"
+        subtitle="Investigation, root-cause reasoning and recovery recommendation"
+        icon={SparklesIcon}
+      >
+        {!analysis && !analyzing && (
+          <div className="py-6 text-center">
+            <BotIcon className="mx-auto h-8 w-8 text-fg3" />
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Panel title="Error Rate" subtitle="payment-api · % of requests failing" icon={ActivityIcon}>
-          <HealthChart data={errorRateSeries} color="#f04438" unit="%" markerX="08:23" markerLabel="v2.4 deploy" gradientId="err" />
-        </Panel>
-        <Panel title="Latency" subtitle="payment-api · p95 response time (ms)" icon={TimerIcon}>
-          <HealthChart data={latencySeries} color="#f5a524" unit="ms" markerX="08:23" markerLabel="v2.4 deploy" gradientId="lat" />
-        </Panel>
-        <Panel title="Database Connections" subtitle="pg-primary · active connections of 100" icon={DatabaseIcon}>
-          <HealthChart data={connectionsSeries} color="#6366f1" unit=" conns" domain={[0, 110]} gradientId="conn" />
-        </Panel>
-      </div>
+            <p className="mt-3 text-sm font-medium text-fg">
+              No analysis run in this session yet
+            </p>
 
-      <div className="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
-        <Panel
-          title="AI Investigation"
-          subtitle="Agent execution trace with tool calls"
-          icon={BotIcon}
-          action={<StatusBadge status={state === 'pending' || state === 'rejected' ? 'investigating' : 'resolved'} kind="incident" pulse={state === 'pending'} />}>
-          
-          <AgentTimeline items={timeline} />
-        </Panel>
+            <p className="mt-1 text-xs text-fg3">
+              Run the investigation to generate a root cause and recovery recommendation.
+            </p>
+          </div>
+        )}
 
-        <div className="space-y-6">
-          <RootCauseCard rootCause={rootCause} />
+        {analyzing && (
+          <div className="flex items-center gap-3 py-6 text-sm text-fg2">
+            <RefreshCwIcon className="h-4 w-4 animate-spin text-ai" />
+            The Investigation, Root Cause and Recovery workflow is running…
+          </div>
+        )}
 
-          <section>
-            <div className="mb-3 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-sm font-semibold tracking-tight text-fg">Alternative Hypotheses</h2>
-                <p className="mt-0.5 text-xs text-fg3">Ranked and scored against the same evidence set</p>
+        {analysis && (
+          <div className="space-y-5">
+            <section className="rounded-lg border border-ai/30 bg-ai/[0.04] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-semibold text-fg">
+                  Probable root cause
+                </h3>
+
+                <span className="rounded-md border border-line px-2 py-1 text-xs font-semibold text-fg">
+                  Confidence: {formatConfidence(confidence)}
+                </span>
               </div>
-              <span className="text-2xs text-fg3">Root Cause Agent</span>
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {alternativeHypotheses.map((h) =>
-              <HypothesisCard key={h.name} hypothesis={h} />
-              )}
-            </div>
-          </section>
 
-          <RecoveryCard
-            recovery={recovery}
-            state={state}
-            steps={recoverySteps}
-            completed={completed}
-            verification={recoveryVerification}
-            onApprove={() => setModalOpen(true)}
-            onReject={() => setState('rejected')}
-            onReset={() => setState('pending')} />
-          
+              <p className="mt-3 text-sm leading-relaxed text-fg">
+                {analysis.probable_root_cause || 'Root cause not determined.'}
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-fg3">
+                Reasoning
+              </h3>
+
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-fg2">
+                {analysis.reasoning || 'No reasoning was returned.'}
+              </p>
+            </section>
+
+            <section>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-fg3">
+                Evidence used
+              </h3>
+
+              {analysis.evidence_used?.length > 0 ? (
+                <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-fg2">
+                  {analysis.evidence_used.map((item, index) => (
+                    <li key={`${index}-${item}`}>{item}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-sm text-fg3">
+                  No supporting evidence was returned.
+                </p>
+              )}
+            </section>
+
+            <section className="rounded-lg border border-warn/30 bg-warn/[0.04] p-4">
+              <div className="flex items-center gap-2">
+                <WrenchIcon className="h-4 w-4 text-warn" />
+                <h3 className="text-sm font-semibold text-fg">
+                  Recovery recommendation
+                </h3>
+              </div>
+
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-fg2">
+                {analysis.recovery_recommendation ||
+                  'No recovery recommendation was returned.'}
+              </p>
+
+              <p className="mt-3 text-xs text-fg3">
+                Recommendation only. No production recovery action has been executed.
+              </p>
+            </section>
+
+            <p className="text-2xs text-fg3">
+              Analysis run #{analysisResult.agentRun?.id ?? '—'} ·{' '}
+              {analysisResult.agentRun?.completedAt
+                ? formatDate(analysisResult.agentRun.completedAt)
+                : 'Completion time unavailable'}
+            </p>
+          </div>
+        )}
+      </Panel>
+
+      {/* Incident logs */}
+      <Panel
+        title="Evidence and Logs"
+        subtitle={`${logs.length} log record${logs.length === 1 ? '' : 's'} associated with this incident`}
+        icon={FileSearchIcon}
+      >
+        {logs.length > 0 ? (
+          <LogViewer
+            logs={normalizedLogs}
+            title={`${serviceName} · incident logs`}
+          />
+        ) : (
+          <EmptyState
+            icon={SirenIcon}
+            title="No logs available"
+            description="Add logs to this incident and run the analysis again to give the AI more evidence."
+          />
+        )}
+      </Panel>
+
+      {/* Current status */}
+      <div className="rounded-lg border border-line bg-panel p-4">
+        <div className="flex items-start gap-3">
+          <SirenIcon
+            className={`mt-0.5 h-4 w-4 ${isResolved ? 'text-ok' : 'text-warn'}`}
+          />
+
+          <div>
+            <p className="text-sm font-semibold text-fg">
+              Incident status: {incident.status}
+            </p>
+
+            <p className="mt-1 text-xs leading-relaxed text-fg3">
+              AI analysis does not change the incident status. Resolve the incident
+              only after the underlying issue has been addressed and verified.
+            </p>
+          </div>
         </div>
       </div>
-
-      <Panel title="Evidence" subtitle="Raw data collected by the Investigation Agent" icon={FileSearchIcon} bodyClassName="">
-        <EvidenceTabs appLogs={appLogs} dbLogs={dbLogs} metrics={metricEvidence} commits={commits} deployments={deployments} />
-      </Panel>
-
-      <Panel title="Related Context" subtitle="Signals the agents considered outside this service" icon={LayersIcon}>
-        <ul className="grid gap-3 md:grid-cols-3">
-          <li className="rounded-lg border border-line bg-panel2/50 px-4 py-3">
-            <p className="text-xs font-medium text-fg">Database degraded</p>
-            <p className="mt-1 text-2xs text-fg3">Shared pg-primary is also serving the Database incident INC-1040.</p>
-          </li>
-          <li className="rounded-lg border border-line bg-panel2/50 px-4 py-3">
-            <p className="text-xs font-medium text-fg">No traffic anomaly</p>
-            <p className="mt-1 text-2xs text-fg3">Requests up only 4% versus 7-day baseline for this hour.</p>
-          </li>
-          <li className="rounded-lg border border-line bg-panel2/50 px-4 py-3">
-            <p className="text-xs font-medium text-fg">Prior similar incident</p>
-            <p className="mt-1 text-2xs text-fg3">INC-0894 resolved by pool-size rollback in 6 minutes.</p>
-          </li>
-        </ul>
-      </Panel>
-
-      <ApprovalModal
-        open={modalOpen}
-        recovery={recovery}
-        onCancel={() => setModalOpen(false)}
-        onConfirm={() => {
-          setModalOpen(false);
-          setCompleted(1);
-          setState('executing');
-        }} />
-      
-    </div>);
-
+    </div>
+  );
 }

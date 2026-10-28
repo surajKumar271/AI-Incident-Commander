@@ -1,0 +1,33 @@
+meta {
+  name: Create Incident 1
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/incidents
+  body: json
+  auth: inherit
+}
+
+headers {
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "projectId": 4,
+    "serviceId": 1,
+    "title": "Test incident - insufficient evidence",
+    "description": "A service appears to be experiencing an issue, but no diagnostic logs are available.",
+    "severity": "LOW",
+    "status": "OPEN"
+  }
+}
+
+settings {
+  encodeUrl: true
+  timeout: 0
+  forwardAuthorizationHeader: false
+}

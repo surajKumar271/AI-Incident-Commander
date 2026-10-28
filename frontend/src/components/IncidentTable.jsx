@@ -14,7 +14,7 @@ export function IncidentTable({ incidents, loading = false }) {
     return (
       <div className="divide-y divide-line" aria-busy="true" aria-label="Loading incidents">
         {[0, 1, 2, 3, 4].map((i) =>
-        <div key={i} className="flex items-center gap-4 px-5 py-4">
+          <div key={i} className="flex items-center gap-4 px-5 py-4">
             <div className="h-3 w-20 animate-pulse rounded bg-white/[0.06]" />
             <div className="h-3 flex-1 animate-pulse rounded bg-white/[0.05]" />
             <div className="h-3 w-24 animate-pulse rounded bg-white/[0.05]" />
@@ -41,11 +41,11 @@ export function IncidentTable({ incidents, loading = false }) {
         <thead>
           <tr className="border-b border-line">
             {columns.map((c, i) =>
-            <th
-              key={c || i}
-              scope="col"
-              className="px-5 py-2.5 text-2xs font-semibold uppercase tracking-wide text-fg3">
-              
+              <th
+                key={c || i}
+                scope="col"
+                className="px-5 py-2.5 text-2xs font-semibold uppercase tracking-wide text-fg3">
+
                 {c}
               </th>
             )}
@@ -53,11 +53,15 @@ export function IncidentTable({ incidents, loading = false }) {
         </thead>
         <tbody className="divide-y divide-line">
           {incidents.map((inc) =>
-          <tr key={inc.id} className="group transition-colors duration-150 ease-smooth hover:bg-white/[0.025]">
+            <tr key={inc.id} className="group transition-colors duration-150 ease-smooth hover:bg-white/[0.025]">
               <td className="px-5 py-3.5 align-middle">
-                <Link to={`/incidents/${inc.id}`} className="block max-w-[280px]">
-                  <span className="font-mono text-2xs text-fg3">{inc.id}</span>
-                  <span className="mt-0.5 block truncate text-sm font-medium text-fg group-hover:text-white">{inc.title}</span>
+                <Link
+                  to={`/incidents/${inc.routeId ?? inc.id}`}
+                  className="block max-w-[280px]"
+                >
+                  <span className="font-mono text-2xs text-fg3">
+                    {inc.displayId ?? inc.id}
+                  </span>
                 </Link>
               </td>
               <td className="px-5 py-3.5 align-middle">
@@ -71,12 +75,12 @@ export function IncidentTable({ incidents, loading = false }) {
               <td className="px-5 py-3.5 align-middle">
                 <div className="w-28">
                   <ConfidenceBar
-                  value={inc.confidence}
-                  label={null}
-                  size="sm"
-                  tone={inc.confidence >= 85 ? 'ok' : inc.confidence >= 70 ? 'ai' : 'warn'}
-                  showValue={false} />
-                
+                    value={inc.confidence}
+                    label={null}
+                    size="sm"
+                    tone={inc.confidence >= 85 ? 'ok' : inc.confidence >= 70 ? 'ai' : 'warn'}
+                    showValue={false} />
+
                   <span className="tabular mt-1 block text-2xs text-fg2">{inc.confidence}%</span>
                 </div>
               </td>
@@ -85,10 +89,11 @@ export function IncidentTable({ incidents, loading = false }) {
               </td>
               <td className="px-5 py-3.5 text-right align-middle">
                 <Link
-                to={`/incidents/${inc.id}`}
-                className="inline-flex items-center gap-1 rounded-md border border-line2 bg-panel2 px-2.5 py-1.5 text-2xs font-semibold text-fg transition-colors duration-150 ease-smooth hover:border-fg3"
-                aria-label={`View ${inc.id}`}>
-                
+                  to={`/incidents/${inc.routeId ?? inc.id}`}
+                  className="inline-flex items-center gap-1 rounded-md border border-line2 bg-panel2 px-2.5 py-1.5 text-2xs font-semibold text-fg transition-colors duration-150 ease-smooth hover:border-fg3"
+                  aria-label={`View ${inc.displayId ?? inc.id}`}
+                >
+
                   View
                   <ArrowRightIcon className="h-3 w-3" aria-hidden="true" />
                 </Link>
